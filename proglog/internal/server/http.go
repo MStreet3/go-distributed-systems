@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -91,8 +92,23 @@ func NewHTTPServer(addr string) *http.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/", httpsrv.handleProduce).Methods("POST")
 	r.HandleFunc("/", httpsrv.handleConsume).Methods("GET")
+	r.Use(logging)
 	return &http.Server{
 		Addr:    addr,
 		Handler: r,
 	}
+}
+
+func logging(next http.Handler) http.Handler {
+	h := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf(
+			"[%s] %s %s %s\n",
+			r.Method,
+			r.Host,
+			r.URL.Path,
+			r.URL.RawQuery,
+		)
+		next.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(h)
 }
