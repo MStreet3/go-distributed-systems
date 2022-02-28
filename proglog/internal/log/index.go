@@ -106,3 +106,7 @@ func (i *index) Close() error {
 func (i *index) Name() string {
 	return i.file.Name()
 }
+
+func (i *index) Last() (out uint32, pos uint64, err error) {
+	return i.Read(-1)
+}
