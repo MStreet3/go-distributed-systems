@@ -22,8 +22,8 @@ func TestLog(t *testing.T) {
 		"append and read a record succeeds": testAppendRead,
 		"offset out of range error":         testOutOfRangeErr,
 		"init with existing segments":       testInitExisting,
-		"reader":                            testReader,
 		"truncate":                          testTruncate,
+		"reader":                            testReader,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			dir, err := ioutil.TempDir("", "store-test")
@@ -40,7 +40,6 @@ func TestLog(t *testing.T) {
 }
 
 func testAppendRead(t *testing.T, log *Log) {
-
 	off, err := log.Append(_append)
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), off)
