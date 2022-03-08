@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 
 	api "github.com/mstreet3/proglog/api/v1"
 	"github.com/mstreet3/proglog/internal/log"
@@ -22,6 +23,7 @@ type grpcTestHelper func(
 func TestServer(t *testing.T) {
 	scenarios := map[string]grpcTestHelper{
 		"produce/consume a message to/from the log succeeds": testProduceConsume,
+		"consume out of bounds error":                        testConsumeOutOfRange,
 	}
 	for scenario, fn := range scenarios {
 		t.Run(scenario, func(t *testing.T) {
@@ -52,6 +54,31 @@ func testProduceConsume(t *testing.T, client api.LogClient, repo *LogRepository)
 	cres, err := client.Consume(ctx, &creq)
 	require.NoError(t, err)
 	require.Equal(t, cres.Record.Value, expected.Value)
+}
+
+func testConsumeOutOfRange(t *testing.T, client api.LogClient, repo *LogRepository) {
+	ctx := context.Background()
+	expected := api.Record{
+		Value: []byte("hello world"),
+	}
+	// Write the expected value
+	req := api.ProduceRequest{
+		Record: &expected,
+	}
+	res, err := client.Produce(ctx, &req)
+	require.NoError(t, err)
+	require.Equal(t, res.Offset, uint64(0))
+
+	// Read past the offset
+	creq := api.ConsumeRequest{
+		Offset: res.Offset + 1,
+	}
+	cres, err := client.Consume(ctx, &creq)
+	require.Nil(t, cres)
+
+	got := status.Code(err)
+	want := status.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
+	require.Equal(t, got, want)
 }
 
 func setupTest(t *testing.T, fn func(*LogRepository)) (
